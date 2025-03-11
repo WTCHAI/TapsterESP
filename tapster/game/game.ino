@@ -398,23 +398,59 @@ void FillTargetBars(int current_bar, bool is_hover, float progress) {
         default:
             break;
     }
-
-    // **Clear the entire bar before redrawing**
     tft.fillRect(gameBars[current_bar].x + 1, 
                  gameBars[current_bar].y + 1, 
                  gameBars[current_bar].width - 2, 
                  gameBars[current_bar].height - 2, 
                  TFT_BLACK);
-
-    // **Fill only the current step** (removes previous steps)
     int startY = gameBars[current_bar].y + (stepHeight * (currentStep - 1));
     tft.fillRect(gameBars[current_bar].x + 1, startY, 
                  gameBars[current_bar].width - 2, stepHeight, 
                  is_hover ? TFT_RED : TFT_WHITE);
     delay(100);
-    DrawUpArrow(gameBars[current_bar].x + (gameBars[current_bar].width / 2), 
-            gameBars[current_bar].y + gameBars[current_bar].height + 5, 
-            10, TFT_WHITE);
+}
+
+// old switchbar
+// void SwitchBars(){
+//     int new_position = bar_position;
+//     if (digitalRead(MODE1_PIN) == LOW){
+//         new_position = (bar_position + 1) % 4;
+//         delay(100);
+//     }
+//     if (digitalRead(MODE2_PIN) == LOW){
+//         new_position = (bar_position - 1 + 4) % 4;
+//         delay(100);
+//     }
+
+//     if (new_position != bar_position) {
+//         bar_position = new_position;
+//         DrawBars(bar_position);
+//     }
+// }
+
+
+void SwitchBars() {
+    int new_position = bar_position;
+    
+    if (digitalRead(MODE1_PIN) == LOW) {
+        new_position = (bar_position + 1) % 4;  // Move to the next bar
+        delay(100);
+    }
+    if (digitalRead(MODE2_PIN) == LOW) {
+        new_position = (bar_position - 1 + 4) % 4;  // Move to the previous bar
+        delay(100);
+    }
+
+    if (new_position != bar_position) {
+        ClearUpArrow(gameBars[bar_position].x + (gameBars[bar_position].width / 2), 
+                   gameBars[bar_position].y + gameBars[bar_position].height + 5, 
+                   15);
+        bar_position = new_position;
+        DrawBars(bar_position);
+        DrawUpArrow(gameBars[bar_position].x + (gameBars[bar_position].width / 2), 
+                    gameBars[bar_position].y + gameBars[bar_position].height + 5, 
+                    15, TFT_RED);
+    }
 }
 
 void ClearFilledBars(int current_bar){
@@ -449,23 +485,6 @@ void DrawThickRect(int x, int y, int w, int h, uint16_t color, int thickness) {
     }
 }
 
-void SwitchBars(){
-    int new_position = bar_position;
-    if (digitalRead(MODE1_PIN) == LOW){
-        new_position = (bar_position + 1) % 4;
-        delay(100);
-    }
-    if (digitalRead(MODE2_PIN) == LOW){
-        new_position = (bar_position - 1 + 4) % 4;
-        delay(100);
-    }
-
-    if (new_position != bar_position) {
-        bar_position = new_position;
-        DrawBars(bar_position);
-    }
-}
-
 void DisplayMonitor() {
     tft.setTextColor(TFT_WHITE, TFT_BLACK);
     tft.setTextSize(2);
@@ -495,8 +514,14 @@ void DrawHeart(int x, int y, int size, uint16_t color) {
 }
 
 void DrawUpArrow(int x, int y, int size, uint16_t color) {
-    // Triangle arrow pointing UP
     tft.fillTriangle(x - size, y, 
                      x + size, y, 
-                     x, y - size, color);
-} 
+                     x, y - (size * 1.5), color);  // **Increase arrow height**
+}
+
+void ClearUpArrow(int x, int y, int size) {
+    // **Erase arrow by drawing it in black**
+    tft.fillTriangle(x - size, y, 
+                     x + size, y, 
+                     x, y - (size * 1.5), TFT_BLACK);
+}
