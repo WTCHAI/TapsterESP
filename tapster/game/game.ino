@@ -92,7 +92,7 @@ void loop() {
             Serial.println("No mode selected");
             break;
     }
-    ScoreLogs();
+    DisplayScoreLogs();
     delay(1000);
 }
 
@@ -168,11 +168,7 @@ void TapSter(float MinVal, float MaxVal) {
         for (int i = 0; i < 4; i++) {
             int current_bar = tapster_instance.cur_pattern[i];
             float randomSec = tapster_instance.randomTimes[i];
-            Serial.print("Wait for ");
-            Serial.print(randomSec, 2);
-            Serial.print(" sec... (Bar ");
-            Serial.print(current_bar);
-            Serial.println(")");
+
             int startTime = millis();
             float timeElapsed = 0;
             bool triggered = false;
@@ -189,9 +185,7 @@ void TapSter(float MinVal, float MaxVal) {
               }
               float progress = timeElapsed / randomSec;
               bool is_hover = (bar_position == (current_bar - 1));
-              FillTargetBars(current_bar - 1, is_hover, progress);
-
-              if (timeElapsed > (randomSec * 0.8) && digitalRead(TRIGGER_PIN) == LOW) {
+              if (timeElapsed > (randomSec * 0.75) && digitalRead(TRIGGER_PIN) == LOW) {
                   Serial.println("✔ Correct Timing! +1 Score");
                   score++;
                   triggered = true;
@@ -201,7 +195,19 @@ void TapSter(float MinVal, float MaxVal) {
                   break;
               }
 
-              if (digitalRead(TRIGGER_PIN) == LOW && timeElapsed < (randomSec * 0.8)) {
+              FillTargetBars(current_bar - 1, is_hover, progress);
+
+              if (timeElapsed > (randomSec * 0.75) && digitalRead(TRIGGER_PIN) == LOW) {
+                  Serial.println("✔ Correct Timing! +1 Score");
+                  score++;
+                  triggered = true;
+                  ClearFilledBars(current_bar - 1);
+                  DisplayMonitor();
+                  delay(100);
+                  break;
+              }
+
+              if (digitalRead(TRIGGER_PIN) == LOW && timeElapsed < (randomSec * 1.1)) {
                   Serial.println("❌ Mistake! Clicked too early! -1 Score");
                   if (penalty > 0) {
                     penalty--;                    
@@ -232,25 +238,25 @@ void TapSter(float MinVal, float MaxVal) {
 
 void ScoreStoring(int _score, int _mode ){
       switch (_mode) {
-        case 1:
+        case 0:
             if (current_l.l_easy < 10) {
                 Easy[current_l.l_easy] = _score;
                 current_l.l_easy++;
             }
             break;
-        case 2:
+        case 1:
             if (current_l.l_normal < 10) {
                 Normal[current_l.l_normal] = _score;
                 current_l.l_normal++;
             }
             break;
-        case 3:
+        case 2:
             if (current_l.l_hard < 10) {
                 Hard[current_l.l_hard] = _score;
                 current_l.l_hard++;
             }
             break;
-        case 4:
+        case 3:
             if (current_l.l_jarnO < 10) {
                 JarnO[current_l.l_jarnO] = _score;
                 current_l.l_jarnO++;
@@ -274,67 +280,98 @@ void SortDescending(int arr[], int size) {
     }
 }
 
-void ScoreLogs() {
-    Serial.println("\n🏆 Score Logs 🏆");
-    // switch case gameMode to logs specific gameMode each log can moved with these two pin #define MODE1_PIN 26,  #define MODE2_PIN 27 same as previos cases 
-    // having in the end exit button going to brake the ScoreLogs and set gameMode = 0 
-    if (current_l.l_easy > 0) {
-        SortDescending(Easy, current_l.l_easy);
-        Serial.println("---- Easy Mode ----");
-        for (int i = 0; i < current_l.l_easy; i++) {
-            Serial.print("Game ");
-            Serial.print(i + 1);
-            Serial.print(": ");
-            Serial.println(Easy[i]);
+void DisplayScoreLogs() {
+    int selectedTab = 0;  // Start with Easy Mode
+    bool isViewing = true;
+
+    while (isViewing) {
+        tft.fillScreen(TFT_BLACK);
+        tft.setTextSize(2);
+        tft.setTextColor(TFT_WHITE);
+
+        String modeNames[4] = {"Easy", "Normal", "Hard", "Jarn O"};
+        int *scoreArray;
+        int scoreCount;
+
+        // Assign corresponding scores based on selectedTab
+        switch (selectedTab) {
+            case 0:
+                scoreArray = Easy;
+                scoreCount = current_l.l_easy;
+                break;
+            case 1:
+                scoreArray = Normal;
+                scoreCount = current_l.l_normal;
+                break;
+            case 2:
+                scoreArray = Hard;
+                scoreCount = current_l.l_hard;
+                break;
+            case 3:
+                scoreArray = JarnO;
+                scoreCount = current_l.l_jarnO;
+                break;
         }
-    } else {
-        Serial.println("No games played in Easy Mode.");
-    }
 
-    if (current_l.l_normal > 0) {
-        SortDescending(Normal, current_l.l_normal);
-        Serial.println("---- Normal Mode ----");
-        for (int i = 0; i < current_l.l_normal; i++) {
-            Serial.print("Game ");
-            Serial.print(i + 1);
-            Serial.print(": ");
-            Serial.println(Normal[i]);
+        // **Draw the mode selection tabs at the top**
+        for (int i = 0; i < 4; i++) {
+            int xStart = 10 + (i * 30);  // Space the tabs horizontally
+            if (i == selectedTab) {
+                tft.fillRoundRect(xStart, 5, 25, 20, 5, TFT_RED);  // Highlight selected mode
+                tft.setTextColor(TFT_BLACK, TFT_RED);  // Inverted colors for selected tab
+            } else {
+                tft.drawRoundRect(xStart, 5, 25, 20, 5, TFT_WHITE);  // Normal mode
+                tft.setTextColor(TFT_WHITE, TFT_BLACK);
+            }
+            tft.setCursor(xStart + 5, 10);
+            tft.print(modeNames[i][0]);  // Display first letter of the mode (E, N, H, J)
         }
-    } else {
-        Serial.println("No games played in Normal Mode.");
-    }
 
-    if (current_l.l_hard > 0) {
-        SortDescending(Hard, current_l.l_hard);
-        Serial.println("---- Hard Mode ----");
-        for (int i = 0; i < current_l.l_hard; i++) {
-            Serial.print("Game ");
-            Serial.print(i + 1);
-            Serial.print(": ");
-            Serial.println(Hard[i]);
+        // **Display the selected mode title**
+        tft.setTextColor(TFT_WHITE);
+        tft.drawCentreString(modeNames[selectedTab], SCREEN_WIDTH / 2, 35, 2);
+
+        // **Show the score logs below**
+        if (scoreCount > 0) {
+            for (int i = 0; i < scoreCount; i++) {
+                tft.setCursor(10, 60 + (i * 12));
+                tft.print("Game ");
+                tft.print(i + 1);
+                tft.print(": ");
+                tft.print(scoreArray[i]);
+            }
+        } else {
+            tft.setCursor(10, 60);
+            tft.print("No scores recorded.");
         }
-    } else {
-        Serial.println("No games played in Hard Mode.");
-    }
 
-    if (current_l.l_jarnO > 0) {
-        SortDescending(JarnO, current_l.l_jarnO);
-        Serial.println("---- JarnO Mode ----");
-        for (int i = 0; i < current_l.l_jarnO; i++) {
-            Serial.print("Game ");
-            Serial.print(i + 1);
-            Serial.print(": ");
-            Serial.println(JarnO[i]);
+        // **Navigation instructions**
+        tft.setCursor(10, SCREEN_HEIGHT - 15);
+        tft.print("MODE1: Next  MODE2: Prev");
+        tft.setCursor(10, SCREEN_HEIGHT - 5);
+        tft.print("TRIGGER: Exit");
+
+        // **Wait for button press**
+        while (true) {
+            if (digitalRead(MODE1_PIN) == LOW) {
+                selectedTab = (selectedTab + 1) % 4;  // Next tab
+                delay(300);
+                break;
+            }
+            if (digitalRead(MODE2_PIN) == LOW) {
+                selectedTab = (selectedTab - 1 + 4) % 4;  // Previous tab
+                delay(300);
+                break;
+            }
+            if (digitalRead(TRIGGER_PIN) == LOW) {
+                isViewing = false;  // Exit log view
+                delay(300);
+                break;
+            }
         }
-    } else {
-        Serial.println("No games played in JarnO Mode.");
     }
-
-    Serial.println("\n🏁 End of Score Logs 🏁\n");
-}
-
-void ClearScreen() {
-    tft.fillScreen(TFT_BLACK);  // Clear the display
+    // Clear screen and return to the main menu
+    tft.fillScreen(TFT_BLACK);
 }
 
 void DisplayStartGame(){
@@ -443,22 +480,33 @@ void SwitchBars() {
 
     if (new_position != bar_position) {
         ClearUpArrow(gameBars[bar_position].x + (gameBars[bar_position].width / 2), 
-                   gameBars[bar_position].y + gameBars[bar_position].height + 5, 
+                   gameBars[bar_position].y + gameBars[bar_position].height + 30, 
                    15);
         bar_position = new_position;
         DrawBars(bar_position);
         DrawUpArrow(gameBars[bar_position].x + (gameBars[bar_position].width / 2), 
-                    gameBars[bar_position].y + gameBars[bar_position].height + 5, 
+                    gameBars[bar_position].y + gameBars[bar_position].height + 30, 
                     15, TFT_RED);
     }
 }
 
-void ClearFilledBars(int current_bar){
-    tft.fillRect(gameBars[current_bar].x + 1, 
-                 gameBars[current_bar].y + 1, 
-                 gameBars[current_bar].width - 2, 
-                 gameBars[current_bar].height - 2, 
-                 TFT_BLACK);
+void DisplayMonitor() {
+    tft.setTextColor(TFT_WHITE, TFT_BLACK);
+    tft.setTextSize(2);
+    tft.fillRect(10, 5, 280, 20, TFT_BLACK);
+    tft.setCursor(10, 5);
+    tft.print("Score: ");
+    tft.print(score);
+
+    int heartSize = 20;
+    int startX = 160;
+    int startY = 5;  
+    int spacing = 15;
+
+    for (int i = 0; i < penalty; i++) {
+        int x = startX + (i * spacing);
+        DrawHeart(x, startY, heartSize, TFT_RED);
+    }
 }
 
 void DrawBars(int c_bar) {
@@ -485,25 +533,6 @@ void DrawThickRect(int x, int y, int w, int h, uint16_t color, int thickness) {
     }
 }
 
-void DisplayMonitor() {
-    tft.setTextColor(TFT_WHITE, TFT_BLACK);
-    tft.setTextSize(2);
-    tft.fillRect(10, 5, 280, 20, TFT_BLACK);
-    tft.setCursor(10, 5);
-    tft.print("Score: ");
-    tft.print(score);
-
-    int heartSize = 20;
-    int startX = 160;
-    int startY = 5;  
-    int spacing = 15;
-
-    for (int i = 0; i < penalty; i++) {
-        int x = startX + (i * spacing);
-        DrawHeart(x, startY, heartSize, TFT_RED);
-    }
-}
-
 void DrawHeart(int x, int y, int size, uint16_t color) {
     int radius = size / 4;
     tft.fillCircle(x - radius, y + radius, radius, color);
@@ -519,9 +548,22 @@ void DrawUpArrow(int x, int y, int size, uint16_t color) {
                      x, y - (size * 1.5), color);  // **Increase arrow height**
 }
 
+void ClearFilledBars(int current_bar){
+    tft.fillRect(gameBars[current_bar].x + 1, 
+                 gameBars[current_bar].y + 1, 
+                 gameBars[current_bar].width - 2, 
+                 gameBars[current_bar].height - 2, 
+                 TFT_BLACK);
+}
+
 void ClearUpArrow(int x, int y, int size) {
     // **Erase arrow by drawing it in black**
     tft.fillTriangle(x - size, y, 
                      x + size, y, 
                      x, y - (size * 1.5), TFT_BLACK);
 }
+
+void ClearScreen() {
+    tft.fillScreen(TFT_BLACK);  // Clear the display
+}
+
