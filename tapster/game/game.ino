@@ -315,57 +315,60 @@ void DisplayScoreLogs() {
 
         // **Draw the mode selection tabs at the top**
         for (int i = 0; i < 4; i++) {
-            int xStart = 10 + (i * 30);  // Space the tabs horizontally
+            int xStart = 10 + (i * 50);  // Increase spacing for larger tabs
             if (i == selectedTab) {
-                tft.fillRoundRect(xStart, 5, 25, 20, 5, TFT_RED);  // Highlight selected mode
+                tft.fillRoundRect(xStart, 5, 40, 30, 5, TFT_RED);  // Bigger highlight
                 tft.setTextColor(TFT_BLACK, TFT_RED);  // Inverted colors for selected tab
             } else {
-                tft.drawRoundRect(xStart, 5, 25, 20, 5, TFT_WHITE);  // Normal mode
+                tft.drawRoundRect(xStart, 5, 40, 30, 5, TFT_WHITE);  // Larger tabs
                 tft.setTextColor(TFT_WHITE, TFT_BLACK);
             }
-            tft.setCursor(xStart + 5, 10);
-            tft.print(modeNames[i][0]);  // Display first letter of the mode (E, N, H, J)
+            tft.setTextSize(2);  // Make text larger
+            tft.setCursor(xStart + 20, 12);  // Adjust positioning
+            tft.print(modeNames[i][0]);  // Display first letter (E, N, H, J)
         }
 
         // **Display the selected mode title**
+        tft.setTextSize(2);
         tft.setTextColor(TFT_WHITE);
-        tft.drawCentreString(modeNames[selectedTab], SCREEN_WIDTH / 2, 35, 2);
-
+        tft.drawCentreString(modeNames[selectedTab], 40, 45, 2);
         // **Show the score logs below**
         if (scoreCount > 0) {
-            for (int i = 0; i < scoreCount; i++) {
-                tft.setCursor(10, 60 + (i * 12));
-                tft.print("Game ");
-                tft.print(i + 1);
-                tft.print(": ");
-                tft.print(scoreArray[i]);
-            }
+          for (int i = 0; i < scoreCount; i++) {
+            tft.setCursor(20, 100 + (i * 90));
+            tft.print("Game ");
+            tft.print(i + 1);
+            tft.print(": ");
+            tft.print(scoreArray[i]);
+          }
         } else {
-            tft.setCursor(10, 60);
+            tft.setCursor(20, 90);
+            tft.setTextSize(2);
             tft.print("No scores recorded.");
         }
 
         // **Navigation instructions**
-        tft.setCursor(10, SCREEN_HEIGHT - 15);
-        tft.print("MODE1: Next  MODE2: Prev");
-        tft.setCursor(10, SCREEN_HEIGHT - 5);
+        // tft.setCursor(440, 280);
+        // tft.print("MODE1: Next  MODE2: Prev");
+        tft.setTextSize(2);
+        tft.setCursor(300, 280);
         tft.print("TRIGGER: Exit");
 
         // **Wait for button press**
         while (true) {
             if (digitalRead(MODE1_PIN) == LOW) {
                 selectedTab = (selectedTab + 1) % 4;  // Next tab
-                delay(300);
+                delay(200);
                 break;
             }
             if (digitalRead(MODE2_PIN) == LOW) {
                 selectedTab = (selectedTab - 1 + 4) % 4;  // Previous tab
-                delay(300);
+                delay(200);
                 break;
             }
             if (digitalRead(TRIGGER_PIN) == LOW) {
                 isViewing = false;  // Exit log view
-                delay(300);
+                delay(200);
                 break;
             }
         }
